@@ -1,7 +1,7 @@
 package Finance::Bank::Commerzbank;
 use strict;
 use Carp;
-our $VERSION = '0.26';
+our $VERSION = '0.27';
 
 use WWW::Mechanize;
 use WWW::Mechanize::FormFiller;
@@ -53,8 +53,7 @@ sub check_balance {
     }
   }
   $ua->follow_link(text => "Kontoumsätze");
-  my @links=$ua->find_all_links();
-  my $n; 
+  @links=$ua->find_all_links();
   for ($n=0;$n<$#links;$n++) {
     my ($url,$title)=@{$links[$n]};
     print "LINK------>".$n." - ".$title."\n";
@@ -202,8 +201,7 @@ sub money_transfer {
       
   }
   $ua->follow_link(text => "Inlandsüberweisung");
-  my @links=$ua->find_all_links();
-  my $n; 
+  @links=$ua->find_all_links();
   for ($n=0;$n<$#links;$n++) {
     my ($url,$title)=@{$links[$n]};
     print "LINK------>".$n." - ".$title."\n";
