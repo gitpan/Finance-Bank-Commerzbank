@@ -1,7 +1,7 @@
 package Finance::Bank::Commerzbank;
 use strict;
 use Carp;
-our $VERSION = '0.28';
+our $VERSION = '0.29';
 
 use WWW::Mechanize;
 use WWW::Mechanize::FormFiller;
@@ -260,12 +260,12 @@ sub money_transfer {
     print "VZ 4             :".$opts{Verwendungszweck4}."\n";
     my $response= $ua->click('PltManageDomesticTransfer_8_btnPruefenDomestic');
     #$ua->click('PltManageDomesticTransfer_8_btnPruefenDomestic');
-    sleep(15);
+    sleep(3);
     $ua->form_number(5);
-
-
     {
-      local $^W; $ua->current_form->value('PltManageDomesticTransfer_8_txtTANPIN', $opts{TANPIN});
+      local $^W; $ua->current_form->value('PltManageDomesticTransfer_8_STR_FECAF5D9B9AF914896', $opts{TANPIN});
+      #The Form has changed.... below the old input for the tan
+      #local $^W; $ua->current_form->value('PltManageDomesticTransfer_8_txtTANPIN', $opts{TANPIN});
     }
     ;
     $ua->click('PltManageDomesticTransfer_8_btnFreigebenDomestic');
