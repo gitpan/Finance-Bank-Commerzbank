@@ -1,13 +1,14 @@
 package Finance::Bank::Commerzbank;
 use strict;
 use Carp;
-our $VERSION = '0.22';
+our $VERSION = '0.25';
 
 use WWW::Mechanize;
 use WWW::Mechanize::FormFiller;
 use URI::URL;
 our $ua = WWW::Mechanize->new( autocheck => 1 );
 our $formfiller = WWW::Mechanize::FormFiller->new();
+use Time::localtime;
 
 sub check_balance {
   my ($class, %opts) = @_;
@@ -19,7 +20,6 @@ sub check_balance {
   my $self = bless { %opts }, $class;
   
   $ua->env_proxy();
-  
   $ua->get('https://portal01.commerzbanking.de/P-Portal/XML/IFILPortal/pgf.html?Tab=1');
   $ua->form(1) if $ua->forms and scalar @{$ua->forms};
   $ua->form_number(4);
@@ -36,8 +36,9 @@ sub check_balance {
   my $n; 
   for ($n=0;$n<$#links;$n++) {
     my ($url,$title)=@{$links[$n]};
-    print "LINK------>".$n." - ".$title."\n";
-      
+    if ($opts{"debug"} eq "1") {
+      print "LINK------>".$n." - ".$title."\n";
+    }
   }
   if (0) {
     $ua->follow_link(text=>"Kontoübersicht");
@@ -46,8 +47,9 @@ sub check_balance {
     while (index($Overview,"PltViewAccountOverview_8_STR_KontoNummer")>-1) {
       $Konto=substr ($Overview,index($Overview,"PltViewAccountOverview_8_STR_KontoNummer")+46,15);
       $Overview=substr ($Overview,index($Overview,"PltViewAccountOverview_8_STR_KontoNummer")+46);
-	  
-      print $Konto."\n";
+      if ($opts{"debug"} eq "1") {
+	print $Konto."\n";
+      }
     }
   }
   $ua->follow_link(text => "Kontoumsätze");
@@ -110,21 +112,23 @@ sub check_balance {
       my $c;
       my @line;
       for $c (@{$r->{cells}}) {
-#	print "CELL :$i\n";
+	#	print "CELL :$i\n";
 	my $Data;
 	if (($i == 1 ) || ($i == 5 )|| ($i == 7 ) ) {
 	  
 	  $Data=substr($c->{data},index($c->{data},"tablehead1")+12,1000);
 	  $Data =~ s/<\/span><br>//g;
 	  $Data =~s/<BR>/#/g;
-	  if (($i ==1 ) && (index($Data,"2004")>-1)) {
+	  my $year=localtime->year()+1900;
+	  my $year_before=localtime->year()+1900-1;
+	  if (($i ==1 ) &&  ( (index($Data,$year)>-1) || (index($Data,$year_before)>-1))) {
 	    $IsOk=1;
 	    $j++;
-#	    print "Transaction - $j:";
+	    #	    print "Transaction - $j:";
 	  }
 	  if ($IsOk) {
 	    push @line,$Data;
-#	    print "Push IsOK".$Data.";";                          
+	    #	    print "Push IsOK".$Data.";";                          
 	  }
 	}
 	if ($i == 10) {
@@ -139,9 +143,6 @@ sub check_balance {
 	  if ($IsOk) {
 	    $Data =~ s/\.//g;
 	    push @line,$Data;
-#	    print "YY".$Data."\n";                          
-	    
-      
 	    push @accounts, (bless {
 				    TradeDate           => $line[0],
 				    Description         => $line[1],
@@ -160,13 +161,22 @@ sub check_balance {
 
 sub money_transfer {
   my ($class, %opts) = @_;
-  croak "Must provide a Teilnehmernummer" 
+  #Checking all necessary InputParameters
+  croak "Must provide : Teilnehmernummer" 
     unless exists $opts{Teilnehmernummer};
-  croak "Must provide a PIN" 
+  croak "Must provide : PIN"
     unless exists $opts{PIN};
-  croak "Must provide a TANPIN" 
+  croak "Must provide : TANPIN"
     unless exists $opts{TANPIN};
-  
+  croak "Must provide : EmpfaengerName"
+    unless exists $opts{EmpfaengerName};
+  croak "Must provide : EmpfaengerKtoNr"
+    unless exists $opts{EmpfaengerKtoNr};
+  croak "Must provide : EmpfaengerBLZ"
+    unless exists $opts{EmpfaengerBLZ};
+  croak "Must provide : Betrag_Eingabe"
+    unless exists $opts{Betrag_Eingabe};
+
   my $self = bless { %opts }, $class;
   
   $ua->env_proxy();
@@ -241,9 +251,6 @@ sub money_transfer {
       local $^W; $ua->current_form->value('PltManageDomesticTransfer_8_CBO_Konten', $opts{Auftragskonto});
     }
     ;
-
-
-
     print "Empfaenger       :".$opts{EmpfaengerName}."\n";
     print "Empfaenger Kto   :".$opts{EmpfaengerKtoNr}."\n";
     print "Empfaenger BLZ   :".$opts{EmpfaengerBLZ}."\n";
@@ -324,6 +331,9 @@ Finance::Bank::Commerzbank - Check your bank accounts from Perl
    Betrag_Eingabe=>"41,56",
    Verwendungszweck1=>"123123",
    Verwendungszweck2=>"RE 123123",
+   Verwendungszweck3=>"Remark1",
+   Verwendungszweck4=>"Remark2",
+
    Auftragskonto=>"*522133474700;EUR;YOUR ACCOUNT/133474700 EUR",
    TANPIN=>"123456");
 
@@ -337,9 +347,9 @@ support to work with LWP.
 
 =head1 CLASS METHODS
 
-    check_balance(Teilnehmernummer => $u,  PIN => $m)
+    check_balance(Teilnehmernummer => $Teilnehmernummer,  PIN => $PIN)
 
-Return a list of the last 90 days account transactions.
+Return a list of the last 90 days account transactions. 
 
 
   use Finance::Bank::Commerzbank;
@@ -365,6 +375,10 @@ from outside. In future versions we try to select the correct main accout.
 
 At the current stage we protocol the temporary output from the HTML
 side into temporary files under the /tmp/ directory. This will be 
+changed in future versions. You could explicit force this if you 
+supply the debug flag to the method call. In future releases the possible Accounts should be autodetected via a new method. At the current stage
+you must parse the HTML output to find the correct Auftragskonto pattern.
+
 =head1 WARNING
 
 This is code for B<online banking>, and that means B<your money>, and
