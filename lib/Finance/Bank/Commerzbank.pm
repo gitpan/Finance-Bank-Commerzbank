@@ -1,7 +1,7 @@
 package Finance::Bank::Commerzbank;
 use strict;
 use Carp;
-our $VERSION = '0.25';
+our $VERSION = '0.26';
 
 use WWW::Mechanize;
 use WWW::Mechanize::FormFiller;
@@ -69,6 +69,7 @@ sub check_balance {
     }
     {
       local $^W; $ua->current_form->value('PltViewAccountTransactions_8_STR_CodeZeitrahmen', '90 Tage');
+      local $^W; $ua->current_form->value('PltViewAccountTransactions_8_STR_KontoNr', $opts{Kontonummer});
     }
     ;
     my $response= $ua->click('PltViewAccountTransactions_8_btnAnzeigen');
@@ -311,7 +312,7 @@ Finance::Bank::Commerzbank - Check your bank accounts from Perl
 
   use Finance::Bank::Commerzbank;
   for (Finance::Bank::Commerzbank->check_balance(
-        Teilnehmernummer  => $Teilnehmernummer,
+        Teilnehmernummer  => $Teilnehmernummer, Kontonummer= $KtoNummer,
         PIN=> $PIN )) {
 	printf ("Transaction No: %d - TradeDate: %s - Description: %s  - ValueDate:%s - Amount: %s\n",
 	            $i,
@@ -334,7 +335,7 @@ Finance::Bank::Commerzbank - Check your bank accounts from Perl
    Verwendungszweck3=>"Remark1",
    Verwendungszweck4=>"Remark2",
 
-   Auftragskonto=>"*522133474700;EUR;YOUR ACCOUNT/133474700 EUR",
+   Auftragskonto=>"133432100 EUR",
    TANPIN=>"123456");
 
 
@@ -347,7 +348,7 @@ support to work with LWP.
 
 =head1 CLASS METHODS
 
-    check_balance(Teilnehmernummer => $Teilnehmernummer,  PIN => $PIN)
+    check_balance(Teilnehmernummer => $Teilnehmernummer,  Kontonummer=>"133432100 EUR",PIN => $PIN)
 
 Return a list of the last 90 days account transactions. 
 
@@ -362,7 +363,7 @@ Return a list of the last 90 days account transactions.
    Betrag_Eingabe=>"41,56",
    Verwendungszweck1=>"123123",
    Verwendungszweck2=>"RE 123123",
-   Auftragskonto=>"*522133474700;EUR;YOUR ACCOUNT/133474700 EUR",
+   Auftragskonto=>"133432100 EUR",
    TANPIN=>"123456");
    }
 
