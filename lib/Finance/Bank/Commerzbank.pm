@@ -1,7 +1,7 @@
 package Finance::Bank::Commerzbank;
 use strict;
 use Carp;
-our $VERSION = '0.27';
+our $VERSION = '0.28';
 
 use WWW::Mechanize;
 use WWW::Mechanize::FormFiller;
@@ -388,6 +388,6 @@ to me, but is provided under B<NO GUARANTEE>, explicit or implied.
 
 =head1 AUTHOR
 
-Tobias Herbert<tobias.herbert@herbert-consult.de>
+Tobias Herbert<tobi@cpan.org>
 
 =cut
